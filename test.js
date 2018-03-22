@@ -10,7 +10,7 @@ const tests = {
   let c = new LRUMap(4);
   asserteq(c.size, 0);
   asserteq(c.limit, 4);
-  asserteq(c.oldest, undefined);
+  asserteq(c.tail, undefined);
   asserteq(c.newest, undefined);
 
   c.set('adam',   29)
@@ -54,7 +54,7 @@ const tests = {
   let verifyEntries = function(c) {
     asserteq(c.size, 4);
     asserteq(c.limit, 4);
-    asserteq(c.oldest.key, 'adam');
+    asserteq(c.tail.key, 'adam');
     asserteq(c.newest.key, 'bob');
     asserteq(c.get('adam'), 29);
     asserteq(c.get('john'), 26);
@@ -96,7 +96,7 @@ assign() {
   c.assign(newEntries);
   asserteq(c.size, 4);
   asserteq(c.limit, 4);
-  asserteq(c.oldest.key, newEntries[0][0]);
+  asserteq(c.tail.key, newEntries[0][0]);
   asserteq(c.newest.key, newEntries[newEntries.length-1][0]);
   let i = 0;
   c.forEach(function(v, k) {
@@ -141,7 +141,7 @@ delete() {
   asserteq(c.size, 1);
   c.delete('john');
   asserteq(c.size, 0);
-  asserteq(c.oldest, undefined);
+  asserteq(c.tail, undefined);
   asserteq(c.newest, undefined);
 },
 
@@ -152,7 +152,7 @@ clear() {
   asserteq(c.size, 2);
   c.clear();
   asserteq(c.size, 0);
-  asserteq(c.oldest, undefined);
+  asserteq(c.tail, undefined);
   asserteq(c.newest, undefined);
 },
 
@@ -189,20 +189,20 @@ set() {
   c.set('a', 3);
   c.set('a', 4);
   asserteq(c.size, 1);
-  asserteq(c.newest, c.oldest);
+  asserteq(c.newest, c.tail);
   assert.deepEqual(c.newest, {key:'a', value:4 });
 
   c.set('a', 5);
   asserteq(c.size, 1);
-  asserteq(c.newest, c.oldest);
+  asserteq(c.newest, c.tail);
   assert.deepEqual(c.newest, {key:'a', value:5 });
 
   c.set('b', 6);
   asserteq(c.size, 2);
-  assert(c.newest !== c.oldest);
+  assert(c.newest !== c.tail);
 
   assert.deepEqual(c.newest, { key:'b', value:6 });
-  assert.deepEqual(c.oldest, { key:'a', value:5 });
+  assert.deepEqual(c.tail, { key:'a', value:5 });
 
   c.shift();
   asserteq(c.size, 1);
