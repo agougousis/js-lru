@@ -34,7 +34,7 @@ function LRUMap(limit, entries) {
 
   this.size = 0;
   this.limit = limit;
-  this.tail = this.newest = undefined;
+  this.tail = this.head = undefined;
   this._keymap = new Map();
 
   if (entries) {
@@ -56,32 +56,29 @@ function Entry(key, value) {
 
 
 LRUMap.prototype._markEntryAsUsed = function(entry) {
-  if (entry === this.newest) {
-    // Already the most recenlty used entry, so no need to update the list
+  // If this entry in the HEAD of the list (the most recently
+  // used), then there is no need for update
+  if (entry === this.head) {    
     return;
   }
-  // HEAD--------------TAIL
-  //   <.NEXT   .PREVIOUS>
-  //  <--- add direction --
-  //   A  B  C  <D>  E
+
+  // Remove the entry from its current position (modify the chain)
+  entry[PREVIOUS][NEXT] = entry[NEXT];
+
+  if (entry !== this.tail) {
+    entry[NEXT][PREVIOUS] = entry[PREVIOUS]; 
+  }
+
+  // Put the entry in front of the current HEAD and update the head 
+  // and tail pointers. WARNING: The order of actions matters!
   if (entry === this.tail) {
     this.tail = entry[PREVIOUS];
   }
-  entry[PREVIOUS][NEXT] = entry[NEXT]; // C <-- E.
 
-
-  if (entry[NEXT]) {
-    entry[NEXT][PREVIOUS] = entry[PREVIOUS]; // C. --> E
-  }
-
-  entry[PREVIOUS] = undefined; // D --x
-  entry[NEXT] = this.newest; // D. --> E
-
-  if (this.newest) {
-    this.newest[PREVIOUS] = entry; // E. <-- D
-  }
-  
-  this.newest = entry;
+  entry[PREVIOUS]       = undefined;
+  this.head[PREVIOUS] = entry;
+  entry[NEXT]           = this.head;
+  this.head           = entry;  
 };
 
 LRUMap.prototype.assign = function(entries) {
@@ -102,7 +99,7 @@ LRUMap.prototype.assign = function(entries) {
       throw new Error('overflow');
     }
   }
-  this.newest = entry;
+  this.head = entry;
   this.size = this._keymap.size;
 };
 
@@ -132,17 +129,17 @@ LRUMap.prototype.set = function(key, value) {
   // new entry
   this._keymap.set(key, (entry = new Entry(key, value)));
 
-  if (this.newest) {
+  if (this.head) {
     // link previous tail to the new tail (entry)
-    this.newest[PREVIOUS] = entry;
-    entry[NEXT] = this.newest;
+    this.head[PREVIOUS] = entry;
+    entry[NEXT] = this.head;
   } else {
     // we're first in -- yay
     this.tail = entry;
   }
 
   // add new entry to the end of the linked list -- it's now the freshest entry.
-  this.newest = entry;
+  this.head = entry;
   ++this.size;
   if (this.size > this.limit) {
     // we hit the limit -- remove the head
@@ -215,9 +212,9 @@ LRUMap.prototype['delete'] = function(key) {
     // remove the link to us
     entry[NEXT][PREVIOUS] = undefined;
     // link the PREVIOUS entry to head
-    this.newest = entry[NEXT];
+    this.head = entry[NEXT];
   } else {// if(entry[NEXT] === undefined && entry.PREVIOUS === undefined) {
-    this.tail = this.newest = undefined;
+    this.tail = this.head = undefined;
   }
 
   this.size--;
@@ -226,7 +223,7 @@ LRUMap.prototype['delete'] = function(key) {
 
 LRUMap.prototype.clear = function() {
   // Not clearing links should be safe, as we don't expose live links to user
-  this.tail = this.newest = undefined;
+  this.tail = this.head = undefined;
   this.size = 0;
   this._keymap.clear();
 };

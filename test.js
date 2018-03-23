@@ -58,7 +58,7 @@ const tests = {
     asserteq(c.size, 4);
     asserteq(c.limit, 4);
     asserteq(c.tail.key, 'adam');
-    asserteq(c.newest.key, 'bob');
+    asserteq(c.head.key, 'bob');
     asserteq(c.get('adam'), 29);
     asserteq(c.get('john'), 26);
     asserteq(c.get('angela'), 24);
@@ -100,7 +100,7 @@ assign() {
   asserteq(c.size, 4);
   asserteq(c.limit, 4);
   asserteq(c.tail.key, newEntries[0][0]);
-  asserteq(c.newest.key, newEntries[newEntries.length-1][0]);
+  asserteq(c.head.key, newEntries[newEntries.length-1][0]);
   let i = 0;
   c.forEach(function(v, k) {
     asserteq(k, newEntries[i][0]);
@@ -192,19 +192,19 @@ set() {
   c.set('a', 3);
   c.set('a', 4);
   asserteq(c.size, 1);
-  asserteq(c.newest, c.tail);
-  assert.deepEqual(c.newest, {key:'a', value:4 });
+  asserteq(c.head, c.tail);
+  assert.deepEqual(c.head, {key:'a', value:4 });
 
   c.set('a', 5);
   asserteq(c.size, 1);
-  asserteq(c.newest, c.tail);
-  assert.deepEqual(c.newest, {key:'a', value:5 });
+  asserteq(c.head, c.tail);
+  assert.deepEqual(c.head, {key:'a', value:5 });
 
   c.set('b', 6);
   asserteq(c.size, 2);
-  assert(c.newest !== c.tail);
+  assert(c.head !== c.tail);
 
-  assert.deepEqual(c.newest, { key:'b', value:6 });
+  assert.deepEqual(c.head, { key:'b', value:6 });
   assert.deepEqual(c.tail, { key:'a', value:5 });
 
   c.removeLRUItem();
