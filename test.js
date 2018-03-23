@@ -37,6 +37,7 @@ const tests = {
     c.get('adam');
   }, /notFound/);
 
+  // Setting an entry for a key that already exists and is not first
   c.set('john', 11);
   asserteq(c.toString(), 'bob:48 < angela:24 < ygwie:81 < john:11');
   asserteq(c.get('john'), 11);

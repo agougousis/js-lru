@@ -75,9 +75,9 @@ LRUMap.prototype._markEntryAsUsed = function(entry) {
     this.tail = entry[PREVIOUS];
   }
 
-  entry[PREVIOUS]       = undefined;
+  entry[PREVIOUS]     = undefined;
   this.head[PREVIOUS] = entry;
-  entry[NEXT]           = this.head;
+  entry[NEXT]         = this.head;
   this.head           = entry;  
 };
 
@@ -117,32 +117,33 @@ LRUMap.prototype.get = function(key) {
 };
 
 LRUMap.prototype.set = function(key, value) {
-  var entry = this._keymap.get(key);
 
-  if (entry) {
-    // update existing
+  // Key already exists
+  if (this._keymap.has(key)) {
+    var entry   = this._keymap.get(key);
     entry.value = value;
+
     this._markEntryAsUsed(entry);
+
     return this;
   }
 
-  // new entry
+  // Key does not exist
   this._keymap.set(key, (entry = new Entry(key, value)));
 
-  if (this.head) {
-    // link previous tail to the new tail (entry)
+  if (this.size > 0) {                  // Non-empty list
     this.head[PREVIOUS] = entry;
-    entry[NEXT] = this.head;
-  } else {
-    // we're first in -- yay
+    entry[NEXT]         = this.head;    
+  } else {                              // Empty list   
     this.tail = entry;
   }
 
-  // add new entry to the end of the linked list -- it's now the freshest entry.
-  this.head = entry;
+  this.head = entry; // In any case, this entry becomes head
+ 
   ++this.size;
-  if (this.size > this.limit) {
-    // we hit the limit -- remove the head
+
+  // If we hit the limit, remove the tail (LRU entry)
+  if (this.size > this.limit) {   
     this.removeLRUItem();
   }
 
