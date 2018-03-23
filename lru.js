@@ -64,12 +64,11 @@ LRUMap.prototype._markEntryAsUsed = function(entry) {
   //   <.NEXT   .PREVIOUS>
   //  <--- add direction --
   //   A  B  C  <D>  E
-  if (entry[PREVIOUS]) {
-    if (entry === this.tail) {
-      this.tail = entry[PREVIOUS];
-    }
-    entry[PREVIOUS][NEXT] = entry[NEXT]; // C <-- E.
+  if (entry === this.tail) {
+    this.tail = entry[PREVIOUS];
   }
+  entry[PREVIOUS][NEXT] = entry[NEXT]; // C <-- E.
+
 
   if (entry[NEXT]) {
     entry[NEXT][PREVIOUS] = entry[PREVIOUS]; // C. --> E
