@@ -70,14 +70,18 @@ LRUMap.prototype._markEntryAsUsed = function(entry) {
     }
     entry[PREVIOUS][NEXT] = entry[NEXT]; // C <-- E.
   }
+
   if (entry[NEXT]) {
     entry[NEXT][PREVIOUS] = entry[PREVIOUS]; // C. --> E
   }
+
   entry[PREVIOUS] = undefined; // D --x
   entry[NEXT] = this.newest; // D. --> E
+
   if (this.newest) {
     this.newest[PREVIOUS] = entry; // E. <-- D
   }
+  
   this.newest = entry;
 };
 
@@ -104,11 +108,15 @@ LRUMap.prototype.assign = function(entries) {
 };
 
 LRUMap.prototype.get = function(key) {
-  // First, find our cache entry
+
+  if (!this._keymap.has(key)) {
+    throw new Error('notFound');
+  }
+
   var entry = this._keymap.get(key);
-  if (!entry) return; // Not cached. Sorry.
-  // As <key> was found in the cache, register it as being requested recently
+
   this._markEntryAsUsed(entry);
+
   return entry.value;
 };
 

@@ -29,10 +29,13 @@ const tests = {
   asserteq(c.get('angela'), 24);
   asserteq(c.toString(), 'adam:29 < john:26 < bob:48 < angela:24');
 
+  // Trying to access a key that is not in cache
   c.set('ygwie', 81);
   asserteq(c.toString(), 'john:26 < bob:48 < angela:24 < ygwie:81');
   asserteq(c.size, 4);
-  asserteq(c.get('adam'), undefined);
+  assert.throws(() => {
+    c.get('adam');
+  }, /notFound/);
 
   c.set('john', 11);
   asserteq(c.toString(), 'bob:48 < angela:24 < ygwie:81 < john:11');
