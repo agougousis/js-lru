@@ -139,33 +139,44 @@ LRUMap.prototype.set = function(key, value) {
   ++this.size;
   if (this.size > this.limit) {
     // we hit the limit -- remove the head
-    this.shift();
+    this.removeLRUItem();
   }
 
   return this;
 };
 
-LRUMap.prototype.shift = function() {
-  // todo: handle special case when limit == 1
-  var entry = this.tail;
-  if (entry) {
-    if (this.tail[PREVIOUS]) {
-      // advance the list
-      this.tail = this.tail[PREVIOUS];
-      this.tail[NEXT] = undefined;
-    } else {
-      // the cache is exhausted
-      this.tail = undefined;
-      this.newest = undefined;
-    }
-    // Remove last strong reference to <entry> and remove links from the purged
-    // entry being returned:
-    entry[PREVIOUS] = entry[NEXT] = undefined;
-    this._keymap.delete(entry.key);
-    --this.size;
-    return [entry.key, entry.value];
+LRUMap.prototype.removeLRUItem = function () {
+
+  // Special case: Empty list
+  if (this.size == 0) {
+    return undefined;
   }
+
+  var entry = this.tail;
+
+  if (this.size == 1) {
+    // Special case: Only one entry in the list
+    this.tail = undefined;
+    this.head = undefined;
+  } else {
+    // All other cases
+    this.tail        = this.tail[PREVIOUS];
+    this.tail[NEXT] = undefined;
+  }    
+
+  --this.size;
+
+  this.purgeRemovedEntry(entry);
+
+  return [entry.key, entry.value];
 };
+
+LRUMap.prototype.purgeRemovedEntry = function (entry) {
+    // Remove last strong reference to <entry> and remove links from the purged entry
+    entry[PREVIOUS] = entry[NEXT] = undefined;
+
+    this._keymap.delete(entry.key);
+}
 
 // ----------------------------------------------------------------------------
 // Following code is optional and can be removed without breaking the core

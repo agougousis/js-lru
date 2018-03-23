@@ -164,15 +164,15 @@ shift() {
   c2.set('c', 3)
   asserteq(c2.size, 3);
 
-  let e = c2.shift();
+  let e = c2.removeLRUItem();
   asserteq(e[0], 'a');
   asserteq(e[1], 1);
   
-  e = c2.shift();
+  e = c2.removeLRUItem();
   asserteq(e[0], 'b');
   asserteq(e[1], 2);
   
-  e = c2.shift();
+  e = c2.removeLRUItem();
   asserteq(e[0], 'c');
   asserteq(e[1], 3);
 
@@ -204,9 +204,9 @@ set() {
   assert.deepEqual(c.newest, { key:'b', value:6 });
   assert.deepEqual(c.tail, { key:'a', value:5 });
 
-  c.shift();
+  c.removeLRUItem();
   asserteq(c.size, 1);
-  c.shift();
+  c.removeLRUItem();
   asserteq(c.size, 0);
   c.forEach(function(){ assert(false) });
 },
