@@ -8,11 +8,11 @@
  *
  * Illustration of the design:
  *
- *       entry             entry             entry             entry
- *       ______            ______            ______            ______
+ *       entry                entry                entry                entry
+ *       ______               ______               ______               ______
  *      | head |.PREVIOUS => |      |.PREVIOUS => |      |.PREVIOUS => | tail |
- *      |  A   |          |  B   |          |  C   |          |  D   |
- *      |______| <= NEXT.|______| <= NEXT.|______| <= NEXT.|______|
+ *      |  A   |             |  B   |             |  C   |             |  D   |
+ *      |______|    <= NEXT. |______|     <= NEXT.|______|     <= NEXT.|______|
  *
  *  removed  <--  <--  <--  <--  <--  <--  <--  <--  <--  <--  <--  added
  */
@@ -81,25 +81,49 @@ LRUMap.prototype._markEntryAsUsed = function(entry) {
   this.head           = entry;  
 };
 
+
 LRUMap.prototype.assign = function(entries) {
-  let entry, limit = this.limit || Number.MAX_VALUE;
+  
+  let lastAddedEntry;
+  
+  // If this is a new object and the limit property has not been
+  // set, we can assign as many as Number.MAX_VALUE entries. The
+  // limit property will be set later to the number of entries we
+  // did assign.
+  let limit = this.limit || Number.MAX_VALUE;
+
   this._keymap.clear();
+
+  // Iterate through the provided key/value pairs
   let it = entries[Symbol.iterator]();
   for (let itv = it.next(); !itv.done; itv = it.next()) {
-    let e = new Entry(itv.value[0], itv.value[1]);
-    this._keymap.set(e.key, e);
-    if (!entry) {
-      this.tail = e;
+
+    // Build the entry to be stored
+    let newEntry = new Entry(itv.value[0], itv.value[1]);
+
+    // Add the entry to the map
+    this._keymap.set(newEntry.key, newEntry);
+
+    // Update the linked list (we need this only once)
+    if (!lastAddedEntry) {
+      this.tail = newEntry; 
     } else {
-      entry[PREVIOUS] = e;
-      e[NEXT] = entry;
+      lastAddedEntry[PREVIOUS] = newEntry;
+      newEntry[NEXT] = lastAddedEntry;
     }
-    entry = e;
+
+    lastAddedEntry = newEntry;
+
+    // Check we have added too many entries
     if (limit-- == 0) {
       throw new Error('overflow');
     }
   }
-  this.head = entry;
+
+  // Update the list head pointer (we need this only once)
+  this.head = lastAddedEntry;
+
+  // Update the list size
   this.size = this._keymap.size;
 };
 
