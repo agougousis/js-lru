@@ -54,34 +54,6 @@ function Entry(key, value) {
   this[NEXT] = undefined;
 }
 
-
-LRUMap.prototype._markEntryAsUsed = function(entry) {
-  // If this entry in the HEAD of the list (the most recently
-  // used), then there is no need for update
-  if (entry === this.head) {    
-    return;
-  }
-
-  // Remove the entry from its current position (modify the chain)
-  entry[PREVIOUS][NEXT] = entry[NEXT];
-
-  if (entry !== this.tail) {
-    entry[NEXT][PREVIOUS] = entry[PREVIOUS]; 
-  }
-
-  // Put the entry in front of the current HEAD and update the head 
-  // and tail pointers. WARNING: The order of actions matters!
-  if (entry === this.tail) {
-    this.tail = entry[PREVIOUS];
-  }
-
-  entry[PREVIOUS]     = undefined;
-  this.head[PREVIOUS] = entry;
-  entry[NEXT]         = this.head;
-  this.head           = entry;  
-};
-
-
 LRUMap.prototype.assign = function(entries) {
   
   let lastAddedEntry;
@@ -125,6 +97,10 @@ LRUMap.prototype.assign = function(entries) {
 
   // Update the list size
   this.size = this._keymap.size;
+};
+
+LRUMap.prototype.has = function(key) {
+  return this._keymap.has(key);
 };
 
 LRUMap.prototype.get = function(key) {
@@ -195,12 +171,38 @@ LRUMap.prototype.removeLRUItem = function () {
 
   --this.size;
 
-  this.purgeRemovedEntry(entry);
+  this._purgeRemovedEntry(entry);
 
   return [entry.key, entry.value];
 };
 
-LRUMap.prototype.purgeRemovedEntry = function (entry) {
+LRUMap.prototype._markEntryAsUsed = function(entry) {
+  // If this entry in the HEAD of the list (the most recently
+  // used), then there is no need for update
+  if (entry === this.head) {    
+    return;
+  }
+
+  // Remove the entry from its current position (modify the chain)
+  entry[PREVIOUS][NEXT] = entry[NEXT];
+
+  if (entry !== this.tail) {
+    entry[NEXT][PREVIOUS] = entry[PREVIOUS]; 
+  }
+
+  // Put the entry in front of the current HEAD and update the head 
+  // and tail pointers. WARNING: The order of actions matters!
+  if (entry === this.tail) {
+    this.tail = entry[PREVIOUS];
+  }
+
+  entry[PREVIOUS]     = undefined;
+  this.head[PREVIOUS] = entry;
+  entry[NEXT]         = this.head;
+  this.head           = entry;  
+};
+
+LRUMap.prototype._purgeRemovedEntry = function (entry) {
     // Remove last strong reference to <entry> and remove links from the purged entry
     entry[PREVIOUS] = entry[NEXT] = undefined;
 
@@ -214,10 +216,6 @@ LRUMap.prototype.purgeRemovedEntry = function (entry) {
 LRUMap.prototype.find = function(key) {
   let e = this._keymap.get(key);
   return e ? e.value : undefined;
-};
-
-LRUMap.prototype.has = function(key) {
-  return this._keymap.has(key);
 };
 
 LRUMap.prototype['delete'] = function(key) {
