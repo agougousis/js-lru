@@ -67,7 +67,7 @@ angela:24 &lt; john:26 &lt; zorro:141
 const out = document.querySelector('#out')
 function log(s) { out.innerText += s + '\n' }
 
-let c = new LRUMap(3)
+let c = new LRUMap(1, 3)
 c.set('adam',   29)
 c.set('john',   26)
 c.set('angela', 24)

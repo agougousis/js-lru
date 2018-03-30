@@ -24,14 +24,23 @@
 
 const PREVIOUS = Symbol('previous');
 const NEXT     = Symbol('next');
+const CREATED_AT = Symbol('created_at');
 
-function LRUMap(limit, entries) {
+/**
+ * 
+ * @param {int} lifetime     The maximum period (in minutes) that a cache entry is considered 
+ *                           valid and can be used. A value of zero will disable lifetime expiration.
+ * @param {int} limit        (optional) The maximum number of entries that can be placed in the cache.
+ * @param {Iterable} entries (optional) key-value pairs to be used as initial cache content.
+ */
+function LRUMap(lifetime, limit, entries) {
   if (typeof limit !== 'number') {
     // called as (entries)
     entries = limit;
     limit = 0;
   }
 
+  this.lifetime = lifetime;
   this.size = 0;
   this.limit = limit;
   this.tail = this.head = undefined;
@@ -50,6 +59,7 @@ exports.LRUMap = LRUMap;
 function Entry(key, value) {
   this.key = key;
   this.value = value;
+  this[CREATED_AT] = new Date().getTime();
   this[PREVIOUS] = undefined;
   this[NEXT] = undefined;
 }
@@ -100,12 +110,35 @@ LRUMap.prototype.assign = function(entries) {
 };
 
 LRUMap.prototype.has = function(key) {
-  return this._keymap.has(key);
+
+  if (this._keymap.has(key)) {
+
+    // We are not using lifetime
+    if (this.lifetime == 0) {
+      return true;
+    }
+
+    // Entries have a lifetime
+    var entry = this._keymap.get(key);
+
+    var now = new Date().getTime();
+    var ageInMinutes = (now - entry[CREATED_AT])/(60000);
+
+    if (ageInMinutes > this.lifetime) {
+      this['delete'](key); // Expired! Delete it!
+
+      return false;
+    }
+
+    return true;
+  }
+
+  return false;
 };
 
 LRUMap.prototype.get = function(key) {
 
-  if (!this._keymap.has(key)) {
+  if (!this.has(key)) {
     throw new Error('notFound');
   }
 
@@ -123,7 +156,7 @@ LRUMap.prototype.set = function(key, value) {
     var entry   = this._keymap.get(key);
     entry.value = value;
 
-    this._markEntryAsUsed(entry);
+    this._markEntryAsUsed(entry, true);
 
     return this;
   }
@@ -176,7 +209,44 @@ LRUMap.prototype.removeLRUItem = function () {
   return [entry.key, entry.value];
 };
 
-LRUMap.prototype._markEntryAsUsed = function(entry) {
+LRUMap.prototype['delete'] = function(key) {
+  var entry = this._keymap.get(key);
+
+  if (!entry) return;
+
+  this._keymap.delete(entry.key);
+
+  if (entry[PREVIOUS] && entry[NEXT]) {
+    // relink the NEXT entry with the PREVIOUS entry
+    entry[NEXT][PREVIOUS] = entry[PREVIOUS];
+    entry[PREVIOUS][NEXT] = entry[NEXT];
+  } else if (entry[PREVIOUS]) {
+    // remove the link to us
+    entry[PREVIOUS][NEXT] = undefined;
+    // link the PREVIOUS entry to head
+    this.tail = entry[PREVIOUS];
+  } else if (entry[NEXT]) {
+    // remove the link to us
+    entry[NEXT][PREVIOUS] = undefined;
+    // link the PREVIOUS entry to head
+    this.head = entry[NEXT];
+  } else {// if(entry[NEXT] === undefined && entry.PREVIOUS === undefined) {
+    this.tail = this.head = undefined;
+  }
+
+  this.size--;
+  
+  return entry.value;
+};
+
+LRUMap.prototype.clear = function() {
+  // Not clearing links should be safe, as we don't expose live links to user
+  this.tail = this.head = undefined;
+  this.size = 0;
+  this._keymap.clear();
+};
+
+LRUMap.prototype._markEntryAsUsed = function(entry, renewAge = false) {
   // If this entry in the HEAD of the list (the most recently
   // used), then there is no need for update
   if (entry === this.head) {    
@@ -200,6 +270,10 @@ LRUMap.prototype._markEntryAsUsed = function(entry) {
   this.head[PREVIOUS] = entry;
   entry[NEXT]         = this.head;
   this.head           = entry;  
+
+  if (renewAge) {
+    this[CREATED_AT] = new Date().getTime();
+  }
 };
 
 LRUMap.prototype._purgeRemovedEntry = function (entry) {
@@ -217,40 +291,6 @@ LRUMap.prototype.find = function(key) {
   let e = this._keymap.get(key);
   return e ? e.value : undefined;
 };
-
-LRUMap.prototype['delete'] = function(key) {
-  var entry = this._keymap.get(key);
-  if (!entry) return;
-  this._keymap.delete(entry.key);
-  if (entry[PREVIOUS] && entry[NEXT]) {
-    // relink the NEXT entry with the PREVIOUS entry
-    entry[NEXT][PREVIOUS] = entry[PREVIOUS];
-    entry[PREVIOUS][NEXT] = entry[NEXT];
-  } else if (entry[PREVIOUS]) {
-    // remove the link to us
-    entry[PREVIOUS][NEXT] = undefined;
-    // link the PREVIOUS entry to head
-    this.tail = entry[PREVIOUS];
-  } else if (entry[NEXT]) {
-    // remove the link to us
-    entry[NEXT][PREVIOUS] = undefined;
-    // link the PREVIOUS entry to head
-    this.head = entry[NEXT];
-  } else {// if(entry[NEXT] === undefined && entry.PREVIOUS === undefined) {
-    this.tail = this.head = undefined;
-  }
-
-  this.size--;
-  return entry.value;
-};
-
-LRUMap.prototype.clear = function() {
-  // Not clearing links should be safe, as we don't expose live links to user
-  this.tail = this.head = undefined;
-  this.size = 0;
-  this._keymap.clear();
-};
-
 
 function EntryIterator(oldestEntry) { this.entry = oldestEntry; }
 EntryIterator.prototype[Symbol.iterator] = function() { return this; }
@@ -318,26 +358,54 @@ LRUMap.prototype.forEach = function(fun, thisObj) {
 };
 
 /** Returns a JSON (array) representation */
-LRUMap.prototype.toJSON = function() {
-  var s = new Array(this.size), i = 0, entry = this.tail;
+LRUMap.prototype.toJSON = function(withDate = false) {
+  var output = new Array(this.size);
+  var i = 0;
+  var entry = this.tail;
+
   while (entry) {
-    s[i++] = { key: entry.key, value: entry.value };
+    output[i] = { 
+      key       : entry.key, 
+      value     : entry.value
+    };
+
+    if (withDate) {
+      output[i].created_at = (new Date(entry[CREATED_AT])).toLocaleString();
+    }
+
+    i++;
+
     entry = entry[PREVIOUS];
   }
-  return s;
+
+  return output;
 };
 
 /** Returns a String representation */
-LRUMap.prototype.toString = function() {
-  var s = '', entry = this.tail;
+LRUMap.prototype.toString = function(withDate = false) {
+  var output = '';
+  var entry = this.tail;
+  
   while (entry) {
-    s += String(entry.key)+':'+entry.value;
+
+    var entryString = String(entry.key) + ':' + entry.value;
+
+    if (withDate) {
+      var dateString = new Date(entry[CREATED_AT]).toLocaleString();
+      entryString += ' (' + dateString + ')';
+      
+    }
+    
+    output += entryString;
+
     entry = entry[PREVIOUS];
+
     if (entry) {
-      s += ' < ';
+      output += ' < ';
     }
   }
-  return s;
+
+  return output;
 };
 
 });
