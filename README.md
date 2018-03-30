@@ -55,6 +55,8 @@ c.toString()        // -> "angela:24 < john:26 < zorro:141"
 
 **Recommended:** Copy the code in lru.js or copy the lru.js and lru.d.ts files into your source directory. For minimal functionality, you only need the lines up until the comment that says "Following code is optional".
 
+In case you are using it with React.js, just use the lru-es6.js file and import 'LRUCache' from there.
+
 **Using NPM:** [`yarn add lru_map`](https://www.npmjs.com/package/lru_map) (note that because NPM is one large flat namespace, you need to import the module as "lru_map" rather than simply "lru".)
 
 **Using AMD:** An [AMD](https://github.com/amdjs/amdjs-api/blob/master/AMD.md#amd) module loader like [`amdld`](https://github.com/rsms/js-amdld) can be used to load this module as well. There should be nothing to configure.
