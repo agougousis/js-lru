@@ -8,14 +8,17 @@ export class LRUMap<K,V> {
   // Construct a new cache object which will hold up to limit entries.
   // When the size == limit, a `put` operation will evict the oldest entry.
   //
+  // The `lifetime` is the maximum lifetime that a cache entry is considered valid.
+  // It is expressed in minutes. If we set it to zero, the entries do not expire.
+  //
   // If `entries` is provided, all entries are added to the new map.
   // `entries` should be an Array or other iterable object whose elements are
   // key-value pairs (2-element Arrays). Each key-value pair is added to the new Map.
   // null is treated as undefined.
-  constructor(limit :number, entries? :Iterable<[K,V]>);
+  constructor(lifetime :number, limit :number, entries? :Iterable<[K,V]>);
 
   // Convenience constructor equivalent to `new LRUMap(count(entries), entries)`
-  constructor(entries :Iterable<[K,V]>);
+  constructor(lifetime :number, entries :Iterable<[K,V]>);
 
   // Current number of items
   size :number;
@@ -39,17 +42,21 @@ export class LRUMap<K,V> {
 
   // Purge the least recently used (oldest) entry from the cache.
   // Returns the removed entry or undefined if the cache was empty.
-  shift() : [K,V] | undefined;
+  removeLRUItem() : [K,V] | undefined;
 
   // Get and register recent use of <key>.
-  // Returns the value associated with <key> or undefined if not in cache.
-  get(key :K) : V | undefined;
+  // It will returns the value associated with <key>, if the key exists and the entry
+  // is not expired. Otherwise, it will throw an error. For that reason, you should
+  // always check, in advance, if a valid key exists by using the has() method.
+  get(key :K) : V;
 
   // Check if there's a value for key in the cache without registering recent use.
+  // If the key refers to an expired entry, the entry will be removed and the returned
+  // value will be false.
   has(key :K) : boolean;
 
-  // Access value for <key> without registering recent use. Useful if you do not
-  // want to chage the state of the map, but only "peek" at it.
+  // Access value for <key> without registering recent use or removing expired entry.
+  // Useful if you do not want to chage the state of the map, but only "peek" at it.
   // Returns the value associated with <key> if found, or undefined if not found.
   find(key :K) : V | undefined;
 
@@ -75,9 +82,13 @@ export class LRUMap<K,V> {
   // Call `fun` for each entry, starting with the oldest entry.
   forEach(fun :(value :V, key :K, m :LRUMap<K,V>)=>void, thisArg? :any) : void;
 
-  // Returns an object suitable for JSON encoding
-  toJSON() : Array<{key :K, value :V}>;
+  // Returns an object suitable for JSON encoding. The withDate parameter defines
+  // whether the entry creation date will be included in the returned object. It 
+  // defaults to false.
+  toJSON(withDate? :boolean) : Array<{key :K, value :V}>;
 
-  // Returns a human-readable text representation
-  toString() : string;
+  // Returns a human-readable text representation. The withDate parameter defines
+  // whether the entry creation date will be included in the representation. It 
+  // defaults to false.
+  toString(withDate? :boolean) : string;
 }

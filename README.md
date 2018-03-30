@@ -1,10 +1,10 @@
-# Least Recently Used (LRU) cache algorithm
+# Least Recently Used (LRU) with Lifetime cache algorithm
 
 A finite key-value map using the [Least Recently Used (LRU)](http://en.wikipedia.org/wiki/Cache_algorithms#Least_Recently_Used) algorithm, where the most recently-used items are "kept alive" while older, less-recently used items are evicted to make room for newer items.
 
 Useful when you want to limit use of memory to only hold commonly-used things.
 
-[![Build status](https://travis-ci.org/rsms/js-lru.svg?branch=master)](https://travis-ci.org/rsms/js-lru)
+Optionally, a maximum lifetime can be defined for cached entries. The expired entries are removed in a 'lazy' way. This means that when an entry expires it is not removed automatically. But the expired entry will be removed if someone tries to retrieve it (through the get() method) or check if it is still in cache (throught the has() method). So, an item that is expired will never be used.
 
 ## Terminology & design
 
@@ -13,9 +13,8 @@ Useful when you want to limit use of memory to only hold commonly-used things.
 - The cache object iself has a "head" (least recently used entry) and a
   "tail" (most recently used entry).
 
-- The "oldest" and "newest" are list entries -- an entry might have a "newer" and
-  an "older" entry (doubly-linked, "older" being close to "head" and "newer"
-  being closer to "tail").
+- An entry might have a "previous" (newer) and a "next" (older) entry (doubly-linked, "next" being close to "tail" and "previous"
+  being closer to "head").
 
 - Key lookup is done through a key-entry mapping native object, which on most 
   platforms mean `O(1)` complexity. This comes at a very low memory cost  (for 
@@ -24,19 +23,19 @@ Useful when you want to limit use of memory to only hold commonly-used things.
 Fancy ASCII art illustration of the general design:
 
 ```txt
-           entry             entry             entry             entry        
-           ______            ______            ______            ______       
-          | head |.newer => |      |.newer => |      |.newer => | tail |      
-.oldest = |  A   |          |  B   |          |  C   |          |  D   | = .newest
-          |______| <= older.|______| <= older.|______| <= older.|______|      
+           entry                entry                entry                entry        
+           ______               ______               ______               ______       
+          | tail |    .next => |      |    .next => |      |    .next => | head |      
+  .tail = |  A   |             |  B   |             |  C   |             |  D   | = .head
+          |______| <= previous.|______| <= previous.|______| <= previous.|______|      
                                                                              
        removed  <--  <--  <--  <--  <--  <--  <--  <--  <--  <--  <--  added
 ```
 
-## Example
+## Example (taking into account only the LRU functionality)
 
 ```js
-let c = new LRUMap(3)
+let c = new LRUMap(0, 3) // lifetime = 0 => no expiration
 c.set('adam',   29)
 c.set('john',   26)
 c.set('angela', 24)
@@ -93,14 +92,17 @@ export class LRUMap<K,V> {
   // Construct a new cache object which will hold up to limit entries.
   // When the size == limit, a `put` operation will evict the oldest entry.
   //
+  // The `lifetime` is the maximum lifetime that a cache entry is considered valid.
+  // It is expressed in minutes. If we set it to zero, the entries do not expire.
+  //
   // If `entries` is provided, all entries are added to the new map.
   // `entries` should be an Array or other iterable object whose elements are
   // key-value pairs (2-element Arrays). Each key-value pair is added to the new Map.
   // null is treated as undefined.
-  constructor(limit :number, entries? :Iterable<[K,V]>);
+  constructor(lifetime :number, limit :number, entries? :Iterable<[K,V]>);
 
   // Convenience constructor equivalent to `new LRUMap(count(entries), entries)`
-  constructor(entries :Iterable<[K,V]>);
+  constructor(lifetime :number, entries :Iterable<[K,V]>);
 
   // Current number of items
   size :number;
@@ -124,17 +126,21 @@ export class LRUMap<K,V> {
 
   // Purge the least recently used (oldest) entry from the cache.
   // Returns the removed entry or undefined if the cache was empty.
-  shift() : [K,V] | undefined;
+  removeLRUItem() : [K,V] | undefined;
 
   // Get and register recent use of <key>.
-  // Returns the value associated with <key> or undefined if not in cache.
-  get(key :K) : V | undefined;
+  // It will returns the value associated with <key>, if the key exists and the entry
+  // is not expired. Otherwise, it will throw an error. For that reason, you should
+  // always check, in advance, if a valid key exists by using the has() method.
+  get(key :K) : V;
 
   // Check if there's a value for key in the cache without registering recent use.
+  // If the key refers to an expired entry, the entry will be removed and the returned
+  // value will be false.
   has(key :K) : boolean;
 
-  // Access value for <key> without registering recent use. Useful if you do not
-  // want to chage the state of the map, but only "peek" at it.
+  // Access value for <key> without registering recent use or removing expired entry.
+  // Useful if you do not want to chage the state of the map, but only "peek" at it.
   // Returns the value associated with <key> if found, or undefined if not found.
   find(key :K) : V | undefined;
 
@@ -160,11 +166,15 @@ export class LRUMap<K,V> {
   // Call `fun` for each entry, starting with the oldest entry.
   forEach(fun :(value :V, key :K, m :LRUMap<K,V>)=>void, thisArg? :any) : void;
 
-  // Returns an object suitable for JSON encoding
-  toJSON() : Array<{key :K, value :V}>;
+  // Returns an object suitable for JSON encoding. The withDate parameter defines
+  // whether the entry creation date will be included in the returned object. It 
+  // defaults to false.
+  toJSON(withDate? :boolean) : Array<{key :K, value :V}>;
 
-  // Returns a human-readable text representation
-  toString() : string;
+  // Returns a human-readable text representation. The withDate parameter defines
+  // whether the entry creation date will be included in the representation. It 
+  // defaults to false.
+  toString(withDate? :boolean) : string;
 }
 
 // An entry holds the key and value, and pointers to any older and newer entries.
@@ -177,18 +187,18 @@ interface Entry<K,V> {
 }
 ```
 
-If you need to perform any form of finalization of items as they are evicted from the cache, wrapping the `shift` method is a good way to do it:
+If you need to perform any form of finalization of items as they are evicted from the cache, wrapping the `removeLRUItem` method is a good way to do it:
 
 ```js
-let c = new LRUMap(123);
-c.shift = function() {
-  let entry = LRUMap.prototype.shift.call(this);
+let c = new LRUMap(0, 123);
+c.removeLRUItem = function() {
+  let entry = LRUMap.prototype.removeLRUItem.call(this);
   doSomethingWith(entry);
   return entry;
 }
 ```
 
-The internals calls `shift` as entries need to be evicted, so this method is guaranteed to be called for any item that's removed from the cache. The returned entry must not include any strong references to other entries. See note in the documentation of `LRUMap.prototype.set()`.
+The internals calls `removeLRUItem` as entries need to be evicted, so this method is guaranteed to be called for any item that's removed from the cache. The returned entry must not include any strong references to other entries. See note in the documentation of `LRUMap.prototype.set()`.
 
 
 # MIT license
