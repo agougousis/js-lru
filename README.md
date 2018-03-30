@@ -4,7 +4,7 @@ A finite key-value map using the [Least Recently Used (LRU)](http://en.wikipedia
 
 Useful when you want to limit use of memory to only hold commonly-used things.
 
-Optionally, a maximum lifetime can be defined for cached entries. The expired entries are removed in a 'lazy' way. This means that when an entry expires it is not removed automatically. But the expired entry will be removed if someone tries to retrieve it (through the get() method) or check if it is still in cache (throught the has() method). So, an item that is expired will never be used.
+On the top of LRU functionality, a maximum lifetime can be defined for cached entries. The expired entries are removed in a 'lazy' way. This means that when an entry expires it is not removed automatically. But the expired entry will be removed if someone tries to retrieve it (through the get() method) or check if it is still in cache (throught the has() method). So, an item that is expired will never be used.
 
 ## Terminology & design
 
@@ -35,7 +35,7 @@ Fancy ASCII art illustration of the general design:
 ## Example (taking into account only the LRU functionality)
 
 ```js
-let c = new LRUMap(0, 3) // lifetime = 0 => no expiration
+let c = new LRUCache(0, 3) // lifetime = 0 => no expiration
 c.set('adam',   29)
 c.set('john',   26)
 c.set('angela', 24)
@@ -77,18 +77,18 @@ c.toString()        // -> "angela:24 < john:26 < zorro:141"
 This module comes with complete typing coverage for use with TypeScript. If you copied the code or files rather than using a module loader, make sure to include `lru.d.ts` into the same location where you put `lru.js`.
 
 ```ts
-import {LRUMap} from './lru'
-// import {LRUMap} from 'lru'     // when using via AMD
-// import {LRUMap} from 'lru_map' // when using from NPM
-console.log('LRUMap:', LRUMap)
+import {LRUCache} from './lru'
+// import {LRUCache} from 'lru'     // when using via AMD
+// import {LRUCache} from 'lru_map' // when using from NPM
+console.log('LRUCache:', LRUCache)
 ```
 
 # API
 
-The API imitates that of [`Map`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map), which means that in most cases you can use `LRUMap` as a drop-in replacement for `Map`.
+The API imitates that of [`Map`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map), which means that in most cases you can use `LRUCache` as a drop-in replacement for `Map`.
 
 ```ts
-export class LRUMap<K,V> {
+export class LRUCache<K,V> {
   // Construct a new cache object which will hold up to limit entries.
   // When the size == limit, a `put` operation will evict the oldest entry.
   //
@@ -101,7 +101,7 @@ export class LRUMap<K,V> {
   // null is treated as undefined.
   constructor(lifetime :number, limit :number, entries? :Iterable<[K,V]>);
 
-  // Convenience constructor equivalent to `new LRUMap(count(entries), entries)`
+  // Convenience constructor equivalent to `new LRUMLRUCacheap(count(entries), entries)`
   constructor(lifetime :number, entries :Iterable<[K,V]>);
 
   // Current number of items
@@ -122,7 +122,7 @@ export class LRUMap<K,V> {
 
   // Put <value> into the cache associated with <key>. Replaces any existing entry
   // with the same key. Returns `this`.
-  set(key :K, value :V) : LRUMap<K,V>;
+  set(key :K, value :V) : LRUCache<K,V>;
 
   // Purge the least recently used (oldest) entry from the cache.
   // Returns the removed entry or undefined if the cache was empty.
@@ -164,7 +164,7 @@ export class LRUMap<K,V> {
   [Symbol.iterator]() : Iterator<[K,V]>;
 
   // Call `fun` for each entry, starting with the oldest entry.
-  forEach(fun :(value :V, key :K, m :LRUMap<K,V>)=>void, thisArg? :any) : void;
+  forEach(fun :(value :V, key :K, m :LRUCache<K,V>)=>void, thisArg? :any) : void;
 
   // Returns an object suitable for JSON encoding. The withDate parameter defines
   // whether the entry creation date will be included in the returned object. It 
@@ -190,15 +190,15 @@ interface Entry<K,V> {
 If you need to perform any form of finalization of items as they are evicted from the cache, wrapping the `removeLRUItem` method is a good way to do it:
 
 ```js
-let c = new LRUMap(0, 123);
+let c = new LRUCache(0, 123);
 c.removeLRUItem = function() {
-  let entry = LRUMap.prototype.removeLRUItem.call(this);
+  let entry = LRUCache.prototype.removeLRUItem.call(this);
   doSomethingWith(entry);
   return entry;
 }
 ```
 
-The internals calls `removeLRUItem` as entries need to be evicted, so this method is guaranteed to be called for any item that's removed from the cache. The returned entry must not include any strong references to other entries. See note in the documentation of `LRUMap.prototype.set()`.
+The internals calls `removeLRUItem` as entries need to be evicted, so this method is guaranteed to be called for any item that's removed from the cache. The returned entry must not include any strong references to other entries. See note in the documentation of `LRUCache.prototype.set()`.
 
 
 # MIT license

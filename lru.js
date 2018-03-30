@@ -3,8 +3,7 @@
  * recently used items while discarding least recently used items when its limit
  * is reached.
  *
- * Licensed under MIT. Copyright (c) 2010 Rasmus Andersson <http://hunch.se/>
- * See README.md for details.
+ * Licensed under MIT. See README.md for details.
  *
  * Illustration of the design:
  *
@@ -14,7 +13,7 @@
  *      |  A   |             |  B   |             |  C   |             |  D   |
  *      |______|    <= NEXT. |______|     <= NEXT.|______|     <= NEXT.|______|
  *
- *  removed  <--  <--  <--  <--  <--  <--  <--  <--  <--  <--  <--  added
+ *  added  -->  -->  -->  -->  -->  -->  -->  -->  -->  -->  -->  removed
  */
 (function(g,f){
   const e = typeof exports == 'object' ? exports : typeof g == 'object' ? g : {};
@@ -33,7 +32,7 @@ const CREATED_AT = Symbol('created_at');
  * @param {int} limit        (optional) The maximum number of entries that can be placed in the cache.
  * @param {Iterable} entries (optional) key-value pairs to be used as initial cache content.
  */
-function LRUMap(lifetime, limit, entries) {
+function LRUCache(lifetime, limit, entries) {
   if (typeof limit !== 'number') {
     // called as (entries)
     entries = limit;
@@ -54,7 +53,7 @@ function LRUMap(lifetime, limit, entries) {
   }
 }
 
-exports.LRUMap = LRUMap;
+exports.LRUCache = LRUCache;
 
 function Entry(key, value) {
   this.key = key;
@@ -64,7 +63,7 @@ function Entry(key, value) {
   this[NEXT] = undefined;
 }
 
-LRUMap.prototype.assign = function(entries) {
+LRUCache.prototype.assign = function(entries) {
   
   let lastAddedEntry;
   
@@ -109,7 +108,7 @@ LRUMap.prototype.assign = function(entries) {
   this.size = this._keymap.size;
 };
 
-LRUMap.prototype.has = function(key) {
+LRUCache.prototype.has = function(key) {
 
   if (this._keymap.has(key)) {
 
@@ -136,7 +135,7 @@ LRUMap.prototype.has = function(key) {
   return false;
 };
 
-LRUMap.prototype.get = function(key) {
+LRUCache.prototype.get = function(key) {
 
   if (!this.has(key)) {
     throw new Error('notFound');
@@ -149,7 +148,7 @@ LRUMap.prototype.get = function(key) {
   return entry.value;
 };
 
-LRUMap.prototype.set = function(key, value) {
+LRUCache.prototype.set = function(key, value) {
 
   // Key already exists
   if (this._keymap.has(key)) {
@@ -183,7 +182,7 @@ LRUMap.prototype.set = function(key, value) {
   return this;
 };
 
-LRUMap.prototype.removeLRUItem = function () {
+LRUCache.prototype.removeLRUItem = function () {
 
   // Special case: Empty list
   if (this.size == 0) {
@@ -209,7 +208,7 @@ LRUMap.prototype.removeLRUItem = function () {
   return [entry.key, entry.value];
 };
 
-LRUMap.prototype['delete'] = function(key) {
+LRUCache.prototype['delete'] = function(key) {
   var entry = this._keymap.get(key);
 
   if (!entry) return;
@@ -239,14 +238,14 @@ LRUMap.prototype['delete'] = function(key) {
   return entry.value;
 };
 
-LRUMap.prototype.clear = function() {
+LRUCache.prototype.clear = function() {
   // Not clearing links should be safe, as we don't expose live links to user
   this.tail = this.head = undefined;
   this.size = 0;
   this._keymap.clear();
 };
 
-LRUMap.prototype._markEntryAsUsed = function(entry, renewAge = false) {
+LRUCache.prototype._markEntryAsUsed = function(entry, renewAge = false) {
   // If this entry in the HEAD of the list (the most recently
   // used), then there is no need for update
   if (entry === this.head) {    
@@ -276,7 +275,7 @@ LRUMap.prototype._markEntryAsUsed = function(entry, renewAge = false) {
   }
 };
 
-LRUMap.prototype._purgeRemovedEntry = function (entry) {
+LRUCache.prototype._purgeRemovedEntry = function (entry) {
     // Remove last strong reference to <entry> and remove links from the purged entry
     entry[PREVIOUS] = entry[NEXT] = undefined;
 
@@ -287,7 +286,7 @@ LRUMap.prototype._purgeRemovedEntry = function (entry) {
 // Following code is optional and can be removed without breaking the core
 // functionality.
 
-LRUMap.prototype.find = function(key) {
+LRUCache.prototype.find = function(key) {
   let e = this._keymap.get(key);
   return e ? e.value : undefined;
 };
@@ -330,23 +329,23 @@ ValueIterator.prototype.next = function() {
 };
 
 
-LRUMap.prototype.keys = function() {
+LRUCache.prototype.keys = function() {
   return new KeyIterator(this.tail);
 };
 
-LRUMap.prototype.values = function() {
+LRUCache.prototype.values = function() {
   return new ValueIterator(this.tail);
 };
 
-LRUMap.prototype.entries = function() {
+LRUCache.prototype.entries = function() {
   return this;
 };
 
-LRUMap.prototype[Symbol.iterator] = function() {
+LRUCache.prototype[Symbol.iterator] = function() {
   return new EntryIterator(this.tail);
 };
 
-LRUMap.prototype.forEach = function(fun, thisObj) {
+LRUCache.prototype.forEach = function(fun, thisObj) {
   if (typeof thisObj !== 'object') {
     thisObj = this;
   }
@@ -358,7 +357,7 @@ LRUMap.prototype.forEach = function(fun, thisObj) {
 };
 
 /** Returns a JSON (array) representation */
-LRUMap.prototype.toJSON = function(withDate = false) {
+LRUCache.prototype.toJSON = function(withDate = false) {
   var output = new Array(this.size);
   var i = 0;
   var entry = this.tail;
@@ -382,7 +381,7 @@ LRUMap.prototype.toJSON = function(withDate = false) {
 };
 
 /** Returns a String representation */
-LRUMap.prototype.toString = function(withDate = false) {
+LRUCache.prototype.toString = function(withDate = false) {
   var output = '';
   var entry = this.tail;
   

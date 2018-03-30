@@ -4,7 +4,7 @@ interface Entry<K,V> {
   value :V;
 }
 
-export class LRUMap<K,V> {
+export class LRUCache<K,V> {
   // Construct a new cache object which will hold up to limit entries.
   // When the size == limit, a `put` operation will evict the oldest entry.
   //
@@ -17,7 +17,7 @@ export class LRUMap<K,V> {
   // null is treated as undefined.
   constructor(lifetime :number, limit :number, entries? :Iterable<[K,V]>);
 
-  // Convenience constructor equivalent to `new LRUMap(count(entries), entries)`
+  // Convenience constructor equivalent to `new LRUCache(count(entries), entries)`
   constructor(lifetime :number, entries :Iterable<[K,V]>);
 
   // Current number of items
@@ -38,7 +38,7 @@ export class LRUMap<K,V> {
 
   // Put <value> into the cache associated with <key>. Replaces any existing entry
   // with the same key. Returns `this`.
-  set(key :K, value :V) : LRUMap<K,V>;
+  set(key :K, value :V) : LRUCache<K,V>;
 
   // Purge the least recently used (oldest) entry from the cache.
   // Returns the removed entry or undefined if the cache was empty.
@@ -80,7 +80,7 @@ export class LRUMap<K,V> {
   [Symbol.iterator]() : Iterator<[K,V]>;
 
   // Call `fun` for each entry, starting with the oldest entry.
-  forEach(fun :(value :V, key :K, m :LRUMap<K,V>)=>void, thisArg? :any) : void;
+  forEach(fun :(value :V, key :K, m :LRUCache<K,V>)=>void, thisArg? :any) : void;
 
   // Returns an object suitable for JSON encoding. The withDate parameter defines
   // whether the entry creation date will be included in the returned object. It 

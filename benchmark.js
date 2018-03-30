@@ -2,7 +2,7 @@
 // $ node --expose-gc benchmark.js
 var assert = require('assert'),
     util = require('util'),
-    LRUMap = require('./lru').LRUMap;
+    LRUCache = require('./lru').LRUCache;
 
 // Create a cache with N entries
 var N = 10000;
@@ -70,7 +70,7 @@ function measure(block) {
   process.stdout.write(msg);
 }
 
-var c = new LRUMap(N);
+var c = new LRUCache(N);
 
 console.log('N = ' + N + ', Iterations = ' + Iterations);
 

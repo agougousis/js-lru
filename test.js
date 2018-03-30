@@ -2,12 +2,12 @@
 // $ node test.js
 // (Might work with other CommonJS-compatible environments)
 const assert = require('assert');
-const LRUMap = require('./lru').LRUMap;
+const LRUCache = require('./lru').LRUCache;
 const asserteq = assert.equal;
 const tests = {
 
 ['set and get']() {
-  let c = new LRUMap(0, 4);
+  let c = new LRUCache(0, 4);
   asserteq(c.size, 0);
   asserteq(c.limit, 4);
   asserteq(c.tail, undefined);
@@ -67,7 +67,7 @@ const tests = {
   };
 
   // with explicit limit
-  verifyEntries(new LRUMap(0, 4, [
+  verifyEntries(new LRUCache(0, 4, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],
@@ -75,7 +75,7 @@ const tests = {
   ]));
 
   // with inferred limit
-  verifyEntries(new LRUMap(0, [
+  verifyEntries(new LRUCache(0, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],
@@ -84,7 +84,7 @@ const tests = {
 },
 
 assign() {
-  let c = new LRUMap(0, [
+  let c = new LRUCache(0, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],
@@ -131,7 +131,7 @@ assign() {
 },
 
 delete() {
-  let c = new LRUMap(0, [
+  let c = new LRUCache(0, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],
@@ -150,7 +150,7 @@ delete() {
 },
 
 clear() {
-  let c = new LRUMap(0, 4);
+  let c = new LRUCache(0, 4);
   c.set('adam', 29);
   c.set('john', 26);
   asserteq(c.size, 2);
@@ -161,7 +161,7 @@ clear() {
 },
 
 shift() {
-  let c2 = new LRUMap(0, 4);
+  let c2 = new LRUCache(0, 4);
   asserteq(c2.size, 0);
   c2.set('a', 1)
   c2.set('b', 2)
@@ -187,7 +187,7 @@ shift() {
 
 set() {
   // Note: v0.1 allows putting same key multiple times. v0.2 does not.
-  c = new LRUMap(0, 4);
+  c = new LRUCache(0, 4);
   c.set('a', 1);
   c.set('a', 2);
   c.set('a', 3);
@@ -217,7 +217,7 @@ set() {
 
 
 ['entry iterator']() {
-  let c = new LRUMap(0, 4, [
+  let c = new LRUCache(0, 4, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],
@@ -240,7 +240,7 @@ set() {
 
 
 ['key iterator']() {
-  let c = new LRUMap(0, 4, [
+  let c = new LRUCache(0, 4, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],
@@ -256,7 +256,7 @@ set() {
 
 
 ['value iterator']() {
-  let c = new LRUMap(0, 4, [
+  let c = new LRUCache(0, 4, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],
@@ -272,7 +272,7 @@ set() {
 
 
 toJSON() {
-  let c = new LRUMap(0, 4, [
+  let c = new LRUCache(0, 4, [
     ['adam',   29],
     ['john',   26],
     ['angela', 24],

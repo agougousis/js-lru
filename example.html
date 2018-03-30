@@ -67,7 +67,7 @@ angela:24 &lt; john:26 &lt; zorro:141
 const out = document.querySelector('#out')
 function log(s) { out.innerText += s + '\n' }
 
-let c = new LRUMap(1, 3)
+let c = new LRUCache(1, 3)
 c.set('adam',   29)
 c.set('john',   26)
 c.set('angela', 24)
@@ -85,7 +85,7 @@ log(c.toString())        // -> "angela:24 < john:26 < zorro:141"
 
 // With AMDLD:
 // define(['lru'], function(lru) {
-//   let c = new lru.LRUMap(3)
+//   let c = new lru.LRUCache(3)
 //   // ...
 // })
 
